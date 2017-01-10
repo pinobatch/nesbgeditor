@@ -1,0 +1,5 @@
+The .sav consists of
+$0000-$0FFF: BG tiles
+$1000-$17FF: Sprite tiles
+$1800-$1BFF: Nametable
+$1F00-$1F1F: Palette

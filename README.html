@@ -1,0 +1,234 @@
+<!DOCTYPE HTML><html><head><title>NES graphics editor manual</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style type="text/css">
+html { background: #000 }
+body { font-family: "Droid Sans", "Trebuchet MS", sans-serif; max-width: 36em; background: #FFF; color: #000; margin: 1em auto; padding: 0.5em 1em }
+ul { padding-left: 1.5em }
+ul li { margin: 0.2em 0 }
+nav ul li a { white-space: nowrap }
+kbd { font-family: sans-serif; font-size: 90%; font-weight: bold; padding: 0 .2em; border-radius: 0.7em; color: #FFF; background: #C00; border: 2px ridge #C00 }
+kbd.middle { text-transform: uppercase; font-size: 80%; background: #444; border: 2px outset #444 }
+code, pre, samp { font-family: "Droid Sans Mono", "Inconsolata", "Consolas", "Monaco", "DejaVu Sans Mono", monospace; color: #060; padding: 0 .2em }
+pre { font-size: 80% }
+code { white-space: nowrap; font-size: 90% }
+samp { white-space: nowrap; font-size: 90%; padding: 0 .2em; text-transform: uppercase; background: #cef; color: #840 }
+samp.w32 { font-family: "Segoe UI", Tahoma, Verdana, "Droid Sans", sans-serif; text-transform: none; background: #ddd; color: #000 }
+
+</style></head><body>
+
+<h1>NES graphics editor</h1>
+<p>
+by Damian Yerrick
+</p><p>
+A lot of people making <a href="http://tvtropes.org/pmwiki/pmwiki.php/Main/Retraux">graphics in the style of 1980s video games</a> want a tool that will help make their graphics conform to the limitations of a particular platform.
+How better to enforce NES limits than to make graphics directly on the NES?
+This program lets you draw pictures with tiles on an NES or anything that can run an NES emulator.
+(Sorry, iDevice owners.)
+If you have an NES and a <a href="http://www.retrousb.com/product_info.php?products_id=34">PowerPak</a>, it also lets you preview your graphics on the real thing and adjust your palette to account for the <a href="http://slack.net/~ant/old/ntsc-presets/">artifacts</a> added by the <a href="http://wiki.nesdev.com/w/index.php/NTSC_video">NES's primitive composite video encoder</a>.
+</p>
+<nav>
+<h2>Contents</h2>
+<ul>
+<li><a href="#Using">Using the editor</a>:<br>
+<a href="#chrpicker">Tile picker</a>, <a href="#ntedit">Drawing with tiles</a>, <a href="#paledit">Palette editor</a>, <a href="#tileedit">Tile editor</a>, <a href="#chrutils">Tile optimization</a></li>
+<li><a href="#Importing">Importing images</a>:<br>
+<a href="#ppu2sav">From PPU dump</a>, <a href="#png2sav">From BMP or PNG</a>, <a href="#chr2sav">From CHR</a>
+</ul>
+</nav>
+
+<h2 id="Using">Using the editor</h2>
+<p>
+The screen is 30 rows of 32 tiles, each 8 by 8 pixels.
+A picture can use up to 256 different tiles.
+Each 2 by 2 tile (16 by 16 pixel) area can use one of four color sets in the palette.
+All color sets have three colors plus a shared background color.
+</p><p>
+Make a copy of one of the files in the <code>sample_savs</code> folder, and put it where your emulator can find it.
+This will depend on where your particular emulator stores saved games.
+For a PowerPak, .sav files can be kept anywhere on the CF card.
+Then run the editor.
+First you'll see a title screen; press Start to get to the tile picker.
+If the tile picker is full of garbage, erase the whole picture by holding <kbd>B</kbd> and Left and pressing <kbd class="middle">Select</kbd>, then waiting ten seconds.
+</p>
+
+<h3 id="chrpicker">Tile picker</h3>
+<p>
+This screen shows all 256 tiles.
+Use the Control Pad to select a tile, press <kbd>B</kbd> to select a color set, and press <kbd>A</kbd> to start drawing.
+Press <kbd class="middle">Start</kbd> to go to the tile editor, or press <kbd class="middle">Select</kbd> to show a menu that leads to the palette editor and tile optimization tools.
+From most other screens, you can press <kbd class="middle">Select</kbd> to return to this screen.
+</p><p>
+NOTE: If you started with a blank .sav file, or you just <a href="#Using">erased the picture</a>, you won't see much here until you play around in the <a href="#tileedit">tile editor</a>.
+</p>
+
+<h3 id="ntedit">Drawing with tiles</h3>
+<p>
+Use the Control Pad to move the cursor.
+Press <kbd>A</kbd> Button to place the selected tile, or hold <kbd>A</kbd> and move to place
+the selected tile multiple times.
+Press <kbd>B</kbd> to pick up the tile and color set under the cursor, and press <kbd>B</kbd> again to cycle among the four color sets with this tile.
+Press <kbd class="middle">Select</kbd> to go back to the tile picker, or hold <kbd class="middle">Select</kbd> and use the Control Pad to quickly select a different tile.
+</p><p>
+A display in the corner of the screen shows where the cursor is and what tile is selected.
+It slides out of the way when you try to draw in the area that it covers.
+</p>
+When you draw, nearby tiles may change colors.
+This is because color sets are assigned on a grid twice as large as the tile grid.
+</p><p>
+Press <kbd class="middle">Start</kbd> to open the map tools menu:
+</p><ul>
+<li><samp>Zoom In</samp> opens the tile editor with tiles arranged as they are in the map.</li>
+<li><samp>Show Color Set Map</samp> shows which color sets are assigned to which areas.</li>
+<li><samp>Copy Area</samp> lets you copy and paste rectangular blocks of tiles. Move to one corner and press <kbd>A</kbd>. Move to the other and press <kbd>A</kbd>. Move the block and press <kbd>A</kbd> to paste. (Attributes are not copied.) Or press <kbd>B</kbd> to back up a step, <kbd class="middle">Start</kbd> to return to map tools, or <kbd class="middle">Select</kbd> to return to drawing.</li>
+<li><samp>Screen Tint</samp> allows changing the "tint" or "emphasis" bits that cause the PPU to apply the equivalent of a <a href="https://en.wikipedia.org/wiki/Color_gel">colored gel</a> that darkens certain colors. Some TVs have trouble with tint colors other than <samp>red</samp>, <samp>green</samp>, and <samp>blue</samp>; if your TV loses sync while cycling through the tints, keep pressing <kbd>A</kbd> until the tint comes back to <samp>none</samp>. Don't try to use tint on a Famicom Titler, PlayChoice, or RGB-modded NES because tint on those systems is so broken that it renders the menus unreadable.</li>
+</ul>
+
+<h3 id="paledit">Palette editor</h3>
+<p>
+Choosing <samp>Edit Color Palette</samp> from the tile picker's menu shows
+a form for editing the backdrop color and the three colors that
+make up each of the four color sets.
+Select a color with the Control Pad, then press <kbd>A</kbd> to change it.
+Left and Right change the hue, while Up and Down change the brightness.
+To move to a different color, press <kbd>A</kbd> again, or release <kbd>A</kbd> if you
+held it while changing the color.
+To return to the tile picker, press <kbd class="middle">Select</kbd>.
+</p><p>
+If you change the background color, the menu color will change
+along with it to stay visible.
+If you change the colors of a color set used in the picture, everything using that color set changes along with it.
+Drawing, changing colors, and drawing more will not allow you to break the NES's color limit.
+</p>
+
+<h3 id="tileedit">Tile editor</h3>
+<p>
+The tile editor shows a zoomed view of 30 tiles from the tile sheet or a 6 by 5 tile area of the picture.
+The thin lines on the border show the edges of a single tile.
+A status bar at the bottom shows where on the 128x128 pixel tile sheet (or the 256x240 pixel picture) the cursor is located, the number of the tile corresponding to this location, which color you are using, how many times this tile is used in the picture, and how many tiles are unused.
+</p><p>
+If a tile is used multiple times in a picture, your changes will affect all uses of the tile.
+If you want to change only one use of a tile in the map, then zoom in on the map and press Start, and any tile you draw on that is used more than once will be copied to a new tile that replaces an unused tile. (The <samp>U</samp> for "unique" next to the count of unused tiles denotes this mode.)
+</p><p>
+Move the pencil cursor with the Control Pad and press <kbd>A</kbd> to draw.
+Press <kbd>B</kbd> to pick up the color under the pencil, and <kbd>B</kbd> to cycle among the four colors.
+To scroll the view, move the cursor near the edge.
+To return to the tile picker, press <kbd class="middle">Select</kbd>.
+</p>
+
+<h3 id="chrutils">Tile optimization</h3>
+<p>
+If you have imported a .sav file from a PPU dump, it will probably have a lot of tiles that the scene doesn't use but other scenes use.
+To make room for new tiles that you create, you can remove unused information.
+The tile picker's menu gives you several ways to do this:
+</p><ul>
+<li><samp>Blank Unused Tiles</samp> replaces any tile that is not used in a screen with a solid pattern.</li>
+<li><samp>Move Used Tiles to Top</samp> is like <samp>Blank Unused Tiles</samp>, except all the used tiles are moved to the top of the tile sheet.</li>
+<li><samp>Remove Duplicate Tiles</samp> finds tiles in the tile sheet that are identical, replaces each tile in the screen with the first tile, and then blanks the duplicates.</li>
+</ul>
+
+<h2 id="Importing">Importing images</h2>
+<p>
+The editor stores your picture in a battery-backed 64 Kbit SRAM chip, which emulators represent as a 8192 byte .sav file.
+A blank .sav file and several sample pictures are included in the <code>sample_savs</code> folder.
+Once you have a .sav file, put it where your emulator or PowerPak can find it, and then start the program.
+The PowerPak is ideal for this because its menu lets you choose one of several .sav files before starting the editor.
+</p><p>
+Or instead of starting from a blank .sav using the tile editor, you may want to convert existing images.
+A conversion tool called written in Python called <code>savtool</code> is included.
+To run it, you'll need to install Python and Python Imaging Library on your computer.
+On Ubuntu or another Debian-based system, installing the <code>python-imaging</code> package will get all prerequisites:
+</p><pre>
+sudo apt-get install python-imaging
+</pre><p>
+If you are running Windows, you'll probably need pre-built executable versions of <a href="http://www.python.org/getit/">Python 2.7.x</a> and <a href="http://www.pythonware.com/products/pil/">Python Imaging Library for Python 2.7</a>.
+</p><p>
+For information on the more obscure operations possible with <code>savtool</code>, run these commands from within a command prompt:
+</p><pre>
+savtool.py --help
+savtool.py --more-help
+</pre>
+
+<h3 id="ppu2sav">From PPU dump</h3>
+<p>
+FCEUX for Windows can export a 16 KiB dump of the PPU memory, which includes two pattern tables (or tile sheets), four screens, and a palette.
+To create this dump, from the <samp class="w32">Debug</samp> menu choose <samp class="w32">Hex Editor</samp>, then from the <samp class="w32">File</samp> menu choose <samp class="w32">Dump to File &gt; PPU Memory</samp>.
+<code>savtool</code> can convert this PPU dump to a .sav file for the editor.
+Make sure to name the PPU dump with a .ppu suffix.
+</p><p>
+The PPU's displayable area is two screens tall and two screens wide, though the NES itself has only enough memory for two distinct screens:
+two across by one down or one across by two down, depending on how the cartridge board is configured.
+Games that scroll over a large map, such as <i>Contra</i> and <i>Mega Man 2</i>, continuously load newly visible portions into a "seam" area placed just offscreen, as illustrated <a href="http://wiki.nesdev.com/w/index.php/File:SMB1_scrolling_seam.gif">here</a>.
+If the scene is not centered, you can change the scrolling.
+Scrolling is specified in 16-pixel units, the same size as the area assigned to a color set, and each screen is 16 units wide and 15 units high.
+</p><p>
+The PPU actually has two tile sheets of 256 tiles each available to it, at addresses $0000 and $1000.
+Usually, one is used for the background and the other for sprites.
+Most later games use $0000 for backgrounds and $1000 for sprites, but some early games such as <i>Super Mario Bros.</i> use the opposite convention.
+(The editor itself puts user interface graphics in $0000 and your tile sheet in $1000.)
+If the image appears scrambled after conversion, you can use the <code>--chr</code> option to tell the converter to pull tiles from $1000 instead.
+</p><p>
+<code>savtool</code> does not support raster effects, which are commonly used in NES games to scroll the playfield while holding the status bar still.
+For example, a status bar in games like <i>Super Mario Bros.</i> will usually be in the wrong place after conversion.
+</p><p>
+Example:
+</p><pre>
+savtool.py smb1_title.ppu smb1_title.sav --chr $1000 -x 16 -y 0
+</pre>
+
+<h3 id="png2sav">From BMP, GIF, or PNG</h3>
+<p>
+<code>savtool</code> converts a picture or tile sheet in a bitmapped format (.bmp, .gif, or .png) to a .sav file.
+If the file is 128x128 pixels or smaller, it loads every tile into the tile sheet and creates a blank nametable.
+</p><p>
+A larger picture is treated as a full-screen image, and duplicate tiles will be removed.
+When converting a bitmap, you can specify an NES palette with <code>--palette</code> from either another .sav file or a 32-character hex palette, and <code>savtool</code> will do its best to make the colors match given the 16x16 pixel color area restriction.
+If you don't provide a <code>--palette</code>, the converted .sav uses color set 0 for the whole picture, and you can change the colors of screen areas within the editor by picking up tiles (<kbd>B</kbd>), changing their color (<kbd>B</kbd> repeatedly), and putting them back down (<kbd>A</kbd>).
+</p><p>
+<code>savtool</code> can also render a .sav file to a PNG using Bisqwit's NES palette.
+Or if you use <code>--write-chr</code> and give a color set number, it extracts the .sav's tile sheet in that color set.
+Finally, use <code>--print-palette</code> to print the 32-character hex palette stored in a .sav, or <code>--show</code> to just view the picture without saving it.
+</p><p>
+Examples:
+</p><pre>
+savtool.py mysketch.png mysketch.sav
+savtool.py mysketch.png mysketch.sav --palette oldsketch.sav
+savtool.py mysketch.sav mysketch.png
+savtool.py mysketch.sav mysketch.png --write-chr 0
+savtool.py mysketch.sav --print-palette
+savtool.py mysketch.sav --show
+</pre>
+
+<h3 id="chr2sav">From CHR</h3>
+<p>
+If you have a 4096 byte .chr file and 1024 byte .nam file that you've been using with some other NES graphics editor such as <a href="http://pineight.com/pc/#ted">8name</a> or <a href="http://shiru.untergrund.net/software.shtml">NESST</a>, you can import those with <code>savtool</code>. If no <code>--palette</code> is specified, either as a hex code or as another .sav file, it uses the same palette that the editor uses for a <a href="#Using">blank picture</a>.
+</p><pre>
+savtool.py kitty.chr --palette 0f0010300f0717270f1a2a370f001030 kitty.sav
+savtool.py kitty.nam --chr kitty.chr kitty.sav
+</pre><p>
+Converting back to .chr and .nam is also supported:
+</p><pre>
+savtool.py kitty.sav kitty.chr
+savtool.py kitty.sav kitty.nam
+</pre><p>
+If you cannot run <code>savtool</code>, you can convert .chr to .sav by appending 4096 bytes of junk data.
+</p><dl>
+<dt>On Windows</dt>
+<dd><code>copy /b kitty.chr+sample_savs/chr2sav.bin kitty.sav</code></dd>
+<dt>On Linux and other UNIX-like systems</dt>
+<dd><code>cat kitty.chr sample_savs/chr2sav.bin &gt; kitty.sav</code></dd>
+</dl><p>
+For more information on the .sav format used by the editor, read "SAV format.txt" in the docs folder.
+</p>
+
+<h2>Legal</h2>
+<p>
+The following applies to this manual and the associated programs:
+</p><p>
+&copy; 2012 Damian Yerrick
+</p><p>
+Copying and distribution of this file, with or without
+modification, are permitted in any medium without royalty provided
+the copyright notice and this notice are preserved in all source
+code copies.  This file is offered as-is, without any warranty.
+</p>
+</body></html>

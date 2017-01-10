@@ -1,0 +1,59 @@
+0.05 (2012-09-29)
+* Map editor: Removed duplicate binary-to-decimal converter.
+* Map editor: Made some UI code reusable by other map tools.
+* Map tools: Added copy and paste (requested by Kasumi).
+* Tile editor: Moved everything up 8 pixels to make room for another
+  line of text in the status bar.
+* Tile editor: Displays count of unused tiles.
+* Tile editor: When zoomed in on a map with unused tiles, Start
+  toggles allocation of a fresh unused tile when drawing onto a tile
+  used more than once.
+
+0.04 (2012-09-13)
+* Left+B+Select at the title screen erases the saved data in case
+  garbage was present.
+* Tile editor: Pen color indicator (at lower right) and tile edge
+  marks (on the border) are drawn in the same color as the status bar
+  text, fixing contrast with light backgrounds (requested by Kasumi).
+* Map editor: Press Start for the map tools menu.
+* Map tools: Zoom in on the map and edit tiles in the order they
+  appear in the map.
+* Map tools: View with constant tiles to see attribute assignments
+  (requested by rane).
+* Map tools: Change the screen tint (requested by Kasumi).
+* savtool: Complete overhaul of image converter.
+* savtool: Extract a palette from a .sav as a 32-digit hex code.
+* savtool: Convert a color PNG with a specified palette (requested
+  by tokumaru).
+* savtool: Remap a PNG to use a specific tile sheet.
+* savtool: Combine .nam and .chr into .sav or vice versa.
+* sample_savs: Cleaned up pm a bit.
+* sample_savs: RPG_village has better tree highlights and some
+  figures.
+
+0.03 (2012-09-02)
+* More completely enables MMC1 SRAM, even on later MMC1 revisions.
+* Moved palette editor to top of the tile picker's menu, above the
+  help page for the map editor (requested by Kasumi).
+* Palette editor supports "spring-loaded" editing.  If the A Button
+  is held longer than half a second, or if a color is changed while
+  A is held, the editor leaves change mode (requested by Kasumi).
+* Palette editor: Fixed wrapping of hues between $xC and $x0
+  (requested by Kasumi).
+* Map editor: Press B repeatedly to cycle among color sets (requested
+  by doppel).
+* Map editor: Cursor is a square (requested by rane and Kasumi).
+* Tile editor: Drawing a straight line doesn't freeze the top row
+  (requested by NovaYoshi).
+* Tile editor: First press of B picks up color under pencil point
+  (requested by Kasumi).
+* Converted manual to HTML and emphasized the pattern of using Select
+  as a back button (requested by Kasumi).
+
+0.02 (2012-08-22)
+* Added tile editor (press Start from tile picker)
+* Includes sample pictures
+* Fixed problem with parsing command line in png2sav
+
+0.01 (2012-07-25)
+* Initial release
