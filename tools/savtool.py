@@ -158,7 +158,7 @@ def mkparser():
                       help="write tile sheet instead of screen, with colorset COLORSET (0-3)",
                       default=None, type="int")
     parser.add_option("--write-swatches", metavar="OUTFILE", dest="swatchfilename",
-                      help="write the entire NES palette to OUTFILE  (.bmp, .chr, .nam, .png, .sav); "
+                      help="write the entire NES palette to OUTFILE (.bmp, .png, .pal, .txt); "
                       "useful for determining hex values",
                       default=None)
     return parser
@@ -675,9 +675,22 @@ def load_bitmap_with_palette(filename, palette):
 def save_swatches(filename=None):
     from PIL import ImageFont, ImageDraw
 
+    if filename.lower().endswith(".pal"):
+        with open(filename, "wb") as outfp:
+            outfp.writelines(bisqpal)
+        return
+
+    if filename.lower().endswith(".txt"):
+        with open(filename, "w") as outfp:
+            outfp.writelines(
+                "%02x\t#%s\n" % (i, b.hex())
+                for i, b in enumerate(bisqpal)
+            )
+        return
+
     cellw, cellh = 24, 24
     im = Image.new('P', (16*cellw, 5*cellh), 0x0F)
-    im.putpalette(b''.join(bisqpal) + b'\xff\x00\xff'*192)
+    im.putpalette(b''.join(bisqpal) + b"\xff\x00\xff"*192)
     fnt = ImageFont.load_default()
     dc = ImageDraw.Draw(im)
     captiontxt = "savtool's NES palette"
