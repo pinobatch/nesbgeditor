@@ -6,10 +6,14 @@
 /obj/nes/*.pb53
 /zip.in
 *.nes.deb
+/editor.nes
 /map.txt
 /vicelabels.txt
 __pycache__/
 *.pyc
+/gallery/gallery.nes
+/gallery/map.txt
+
 
 # this is NES homebrew, not DSiWare
 *.DS_Store
