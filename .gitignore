@@ -3,10 +3,11 @@
 *~
 *.chr
 /obj/nes/*.s
+/obj/nes/*.pb53
 /zip.in
 *.nes.deb
 /map.txt
-/nsfmap.txt
+/vicelabels.txt
 __pycache__/
 *.pyc
 

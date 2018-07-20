@@ -8,7 +8,7 @@
 ; code copies.  This file is offered as-is, without any warranty.
 ;
 
-.include "src/mmc1.h"
+.include "mmc1.inc"
 .import nmi, reset, irq
 MULTIPLE_PRG_BANKS = 0
 

@@ -8,9 +8,9 @@
 ; code copies.  This file is offered as-is, without any warranty.
 ;
 
-.include "src/nes.h"
-.include "src/mmc1.h"
-.include "src/ram.h"
+.include "nes.inc"
+.include "global.inc"
+.include "mmc1.inc"
 
 .global OAM
 .export nmi, reset, irq

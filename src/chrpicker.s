@@ -8,8 +8,8 @@
 ; code copies.  This file is offered as-is, without any warranty.
 ;
 
-.include "src/nes.h"
-.include "src/ram.h"
+.include "nes.inc"
+.include "global.inc"
 
 CHRBORDER_TILE = $6F
 CHRBORDER_PATTERN = $FF  ; use $AA for testing

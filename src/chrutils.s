@@ -7,7 +7,7 @@
 ; the copyright notice and this notice are preserved in all source
 ; code copies.  This file is offered as-is, without any warranty.
 ;
-.include "src/ram.h"
+.include "global.inc"
 
 .segment "BSS"
 .align 256

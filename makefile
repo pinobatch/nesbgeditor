@@ -44,9 +44,11 @@ CFLAGS = -std=gnu99 -Wall -DNDEBUG -O
 # not.  COMSPEC will be set to the name of the shell on Windows and
 # not defined on UNIX.
 ifdef COMSPEC
-DOTEXE=.exe
+DOTEXE:=.exe
+PY:=py -3
 else
-DOTEXE=
+DOTEXE:=
+PY:=python3
 endif
 
 .PHONY: run debug all dist zip clean
@@ -86,10 +88,11 @@ clean:
 
 objlistntsc = $(foreach o,$(objlist),$(objdir)/$(o).o)
 
-map.txt $(title).nes: snrom32.ini $(objlistntsc)
+map.txt $(title).nes: snrom256kbit.cfg $(objlistntsc)
 	$(LD65) -C $^ -m map.txt -Ln vicelabels.txt -o $(title).nes
 
-$(objdir)/%.o: $(srcdir)/%.s $(srcdir)/nes.h $(srcdir)/ram.h
+$(objdir)/%.o: $(srcdir)/%.s \
+  $(srcdir)/nes.inc $(srcdir)/global.inc $(srcdir)/mmc1.inc
 	$(AS65) $(CFLAGS65) $< -o $@
 
 $(objdir)/%.o: $(objdir)/%.s
@@ -106,12 +109,12 @@ $(title).chr: $(objdir)/menuchr.chr $(objdir)/bgedit.chr
 	cat $^ > $@
 
 $(objdir)/%.chr: $(imgdir)/%.png
-	tools/pilbmp2nes.py $< $@
+	$(PY) tools/pilbmp2nes.py $< $@
 
 $(objdir)/%.pb53: $(objdir)/%.chr
-	tools/pb53.py $< $@
+	$(PY) tools/pb53.py $< $@
 
 $(objdir)/%16.chr: $(imgdir)/%.png
-	tools/pilbmp2nes.py -H 16 $< $@
+	$(PY) tools/pilbmp2nes.py -H 16 $< $@
 
 

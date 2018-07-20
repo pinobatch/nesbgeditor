@@ -8,8 +8,8 @@
 ; code copies.  This file is offered as-is, without any warranty.
 ;
 
-.include "src/nes.h"
-.include "src/ram.h"
+.include "nes.inc"
+.include "global.inc"
 
 ntupdate_dstlo = $0110
 ntupdate_dsthi = $0111

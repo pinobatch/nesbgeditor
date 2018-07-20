@@ -12,7 +12,7 @@
 ; 2012-09-12: added selected_tint support to ppu_screen_on
 ;
 
-.include "src/nes.h"
+.include "nes.inc"
 .export ppu_clear_nt, ppu_clear_oam, ppu_screen_on
 .import OAM
 .importzp selected_tint
