@@ -13,7 +13,7 @@ __pycache__/
 *.pyc
 /gallery/gallery.nes
 /gallery/map.txt
-
+/editor-*.zip
 
 # this is NES homebrew, not DSiWare
 *.DS_Store
