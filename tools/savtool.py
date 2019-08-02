@@ -150,6 +150,8 @@ def mkparser():
     parser.add_option("--remap", dest="remap",
                       default=False, action="store_true",
                       help="instead of replacing a picture's tile sheet with SHEET, remap it to use tiles already in SHEET")
+    parser.add_option("--max-tiles", type=int,
+                      help="reduce unique tiles to this many (e.g. 256)")
     parser.add_option("-x", "--scroll-x", dest="xscroll",
                       help="trim 16*DISTANCE pixels from left side of .ppu (0-31, default 0)",
                       metavar="DISTANCE", type="int", default=0)
@@ -284,11 +286,13 @@ def parse_argv(argv):
         parser.error("only PPU dumps can be scrolled")
     if options.printpalette and paltype not in ('ppu', 'sav'):
         parser.error("only PPU dumps and save files have an NES palette")
+    if options.max_tiles is not None and not 2 <= options.max_tiles <= 256:
+        parser.error("max-tiles not in 2 to 256")
 
     return (infilename, outfilename, options.chrfilename,
             options.xscroll, options.yscroll,
             options.palette, options.printpalette, options.writechr,
-            options.show, remap, options.swatchfilename)
+            options.show, remap, options.swatchfilename, options.max_tiles)
 
 def test_argv():
     from shlex import split as strtoargs
@@ -406,15 +410,19 @@ def load_nam(filename):
 
 # Bitmap image loading ##############################################
 
-def bitmap_to_sav(im):
+def bitmap_to_sav(im, max_tiles=None):
     """Convert a PIL bitmap without remapping the colors."""
     from pilbmp2nes import pilbmp2chr
     from chnutils import dedupe_chr
     (w, h) = im.size
     im = pilbmp2chr(im, 8, 8)
 
-    namdata = bytearray([0xFF] * 960)
-    namdata.extend([0x00] * 64)
+    if max_tiles is not None:
+        from jrtilevq import reduce_tiles
+        im = reduce_tiles(im, max_tiles)
+
+    namdata = bytearray([0xFF]) * 960
+    namdata.extend(bytes(64))
     # If smaller than 16384 pixels, output as a tile sheet
     # with a blank nametable
     if len(im) > 256:
@@ -451,14 +459,15 @@ def ensure_pil():
               file=sys.stderr)
         sys.exit(1)
 
-def load_bitmap(filename):
+def load_bitmap(filename, max_tiles=None):
     """Load a BMP, GIF, or PNG image without remapping the colors."""
     ensure_pil()
-    return bitmap_to_sav(Image.open(filename))
+    return bitmap_to_sav(Image.open(filename), max_tiles)
 
 # Rendering .sav file to bitmap #####################################
 
-# Bisqwit's palette
+# Palette generated with Bisqwit's tool
+# using settings close to gamma 2, sat 1.2
 bisqpal = bytes.fromhex(
     '656565002d69131f7f3c137c600b62730a37710f075a1a00'
     '3428000b3400003c00003d10003840000000000000000000'
@@ -588,6 +597,38 @@ def remap_sav_to_chr(srcsav, dstsheet):
     return b''.join((b''.join(dsttiles),
                     srcsav[0x1000:0x1800], newnam, srcsav[0x1BC0:]))
 
+def sav_reduce_tiles(sav, max_tiles):
+    from jrtilevq import reduce_tiles
+
+    # Reconstitute image from tile set and tile map
+    chrdata = [sav[i:i + 16] for i in range(0, 0x1000, 0x10)]
+    chrdata = [chrdata[i] for i in sav[0x1800:0x1BC0]]
+
+    # Reduce tiles
+    chrdata = reduce_tiles(chrdata, max_tiles)
+    print(len(chrdata), max_tiles)
+
+    # Form the new tilemap
+    nt = bytearray()
+    tiletoid = {}
+    for tile in chrdata:
+        tiletoid.setdefault(tile, len(tiletoid))
+        nt.append(tiletoid[tile])
+    newchrdata = [b''] * len(tiletoid)
+    for t, n in tiletoid.items():
+        newchrdata[n] = t
+    assert(len(nt) == 960)
+    assert(len(newchrdata) <= max_tiles)
+
+    # And put it in a new sav file
+    newsav = bytearray(b''.join(newchrdata))
+    newsav.extend(bytes(0x1000 - len(newsav)))
+    newsav.extend(sav[0x1000:0x1800])
+    newsav.extend(nt)
+    newsav.extend(sav[0x1BC0:])
+    assert(len(newsav) == 8192)
+    return bytes(newsav)
+
 # Rounding a bitmap toward a given palette ##########################
 
 # There are holes in PIL's indexed image conversion API, which appear
@@ -656,7 +697,7 @@ def colorround(im, palettes):
     attrs = [attrs[i:i + attrw] for i in range(0, len(attrs), attrw)]
     return (imf, attrs)
 
-def load_bitmap_with_palette(filename, palette):
+def load_bitmap_with_palette(filename, palette, max_tiles=None):
     ensure_pil()
     from pilbmp2nes import pilbmp2chr
     from chnutils import dedupe_chr
@@ -786,7 +827,7 @@ def main(argv=None):
     args = parse_argv(argv or sys.argv)
     (infilename, outfilename, chrfilename,
      xscroll, yscroll, palette, printpalette, writechr,
-     show, remap, swatchfilename) = args
+     show, remap, swatchfilename, max_tiles) = args
     progname = os.path.basename(sys.argv[0])
 
     if swatchfilename:
@@ -828,16 +869,23 @@ def main(argv=None):
     elif intype == 'sav':
         sav = load_sav(infilename)
     elif intype == 'bmp':
+        # max_tiles has to be passed to bitmap loaders because
+        # otherwise they can 
         if palette:
-            sav = load_bitmap_with_palette(infilename, palette)
+            sav = load_bitmap_with_palette(infilename, palette, max_tiles)
         else:
-            sav = load_bitmap(infilename)
+            sav = load_bitmap(infilename, max_tiles)
     elif intype == 'nam':
         sav = load_nam(infilename)
     else:
         print("%s: %s input type not yet implemented" % (progname, intype),
               file=sys.stderr)
         sys.exit(1)
+
+    ntuniques = len(set(sav[0x1800:0x1BC0]))
+    if max_tiles is not None and max_tiles < ntuniques:
+        print("Reducing", ntuniques, "uniques to", max_tiles)
+        sav = sav_reduce_tiles(sav, max_tiles)
 
     changed = False
     if paltype == 'literal':
