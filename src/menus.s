@@ -191,8 +191,8 @@ canceled_cd:
 .segment "RODATA"
 title_msg:
   .byt "GRAPHICS EDITOR FOR NES",LF
-  .byt "VERSION 0.05",LF
-  .byt "COPR.2012 DAMIAN YERRICK",LF,LF
+  .byt "VERSION 0.06",LF
+  .byt "COPR.2012,2019 DAMIAN YERRICK",LF,LF
   .byt "PRESS START BUTTON TO DRAW!",LF,LF,LF,LF,LF
   .byt "____________________________",LF,LF
   .byt "NOTICE:",LF

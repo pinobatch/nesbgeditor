@@ -1,3 +1,11 @@
+0.06 (2019-11-23)
+* Build with recent ca65 (no changes otherwise)
+* Map tools: Port to Python 3
+* Map tools: Write swatches as .pal, TSV (.txt), or GIMP palette
+  (.gpl)
+* Map tools: Automatically reduce tile count if greater than 256
+  using JRoatch's tile vector quantizer
+
 0.05 (2012-09-29)
 * Map editor: Removed duplicate binary-to-decimal converter.
 * Map editor: Made some UI code reusable by other map tools.
