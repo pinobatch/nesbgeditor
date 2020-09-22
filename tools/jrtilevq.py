@@ -23,6 +23,9 @@
 # Original thread
 # https://forums.nesdev.com/viewtopic.php?f=21&t=14807
 #
+# Changes 2020-09-22 by Damian Yerrick
+# - Help for argparse
+#
 # Changes 2018-04-07 by Damian Yerrick
 # - Parse arguments with argparse
 #
@@ -121,10 +124,25 @@ def reduce_tiles(chr_data, maxsize=256, logfp=None):
         return b''.join(nametable)
 
 def parse_argv(argv):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("INCHR")
-    parser.add_argument("OUTCHR")
-    parser.add_argument("-n", type=int, default=256)
+    prolog="""
+Merges similar 8x8-pixel tiles in a 2-bit image in NES CHR format.
+"""
+    epilog="""
+The tool tries to preserve silhouette.  It treats a difference
+between a pixel with color 0 and a pixel with color 1-3 as more
+noticeable than a difference between two pixels with colors 1-3.
+For best results, the input files should not already be reduced to
+unique tiles with a tilemap.  If a tile appears multiple times in the
+image, it should appear multiple tiles in INCHR.  This helps the tool
+weigh common vs. rare tiles for merging.
+"""
+    parser = argparse.ArgumentParser(description=prolog, epilog=epilog)
+    parser.add_argument("INCHR",
+                        help="filename of input in NES CHR format")
+    parser.add_argument("OUTCHR",
+                        help="filename of output in NES CHR format")
+    parser.add_argument("-n", "--max-tiles", type=int, default=256,
+                        help="maximum distinct tiles to produce (default 256)")
     return parser.parse_args(argv[1:])
 
 def main(argv=None):
@@ -132,7 +150,7 @@ def main(argv=None):
     infilename = args.INCHR
     outfilename = args.OUTCHR
     verbose = True
-    maxsize = args.n
+    maxsize = args.max_tiles
     
     with open(infilename, 'rb') as infp:
         chr_data = infp.read()
