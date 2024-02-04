@@ -497,13 +497,20 @@ def chrbank_to_texels(chrdata):
     _ttt = tile_to_texels
     return [_ttt(chrdata[i:i + 16]) for i in range(0, len(chrdata), 16)]
 
-def texels_to_pil(texels, tile_width=16):
+def texels_to_pil(texels, tile_width=16, row_height=1):
     ensure_pil()
-    r8 = range(8)
-    texels = [texels[i:i + tile_width]
-              for i in range(0, len(texels), tile_width)]
+    row_length = tile_width * row_height
+    tilerows = [
+        texels[j:j + row_length:row_height]
+        for i in range(0, len(texels), row_length)
+        for j in range(i, i + row_height)
+    ]
+    emptytile = [bytes(8)] * 8
+    for row in tilerows:
+        if len(row) < tile_width:
+            row.extend([emptytile] * (tile_width - len(tilerows[-1])))
     texels = [bytes(c for tile in row for c in tile[y])
-              for row in texels for y in range(8)]
+              for row in tilerows for y in range(8)]
     im = Image.frombytes('P', (8 * tile_width, len(texels)), b''.join(texels))
     im.putpalette(b'\x00\x00\x00\x66\x66\x66\xb2\xb2\xb2\xff\xff\xff'*64)
     return im
@@ -757,7 +764,7 @@ def save_swatches(filename=None):
         if filename is None:
             sys.stdout.write(lines)
         else:
-            with open(filename, "w") as outfp:
+            with open(filename, "w", encoding="utf-8") as outfp:
                 outfp.write(lines)
         return
 
@@ -775,7 +782,7 @@ Columns: 16
             "%3d%4d%4d\t$%02x %s\n" % (b[0], b[1], b[2], i, colorname(i))
             for i, b in enumerate(bisqpal)
         )
-        with open(filename, "w") as outfp:
+        with open(filename, "w", encoding="utf-8") as outfp:
             outfp.writelines(lines)
         return
 
