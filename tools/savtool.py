@@ -826,9 +826,9 @@ Columns: 16
     if filename:
         im.save(filename)
     else:
-        im.show()
+        im.convert("RGB").show()
 
-# Let's see if we can do main() now. ################################
+# CLI front end #####################################################
 
 def main(argv=None):
     args = parse_argv(argv or sys.argv)
@@ -903,16 +903,21 @@ def main(argv=None):
     if chrtype in ('ppu', 'sav', 'chr'):
         chrdata = load_chr(chrfilename)
     elif chrtype == 'bmp':
-        chrdata = load_bitmap(chrfilename)
+        from pilbmp2nes import pilbmp2chr
+        with Image.open(chrfilename) as chrim:
+            chrdata = pilbmp2chr(chrim, 8, 8)
+        chrdata.extend(chrdata[:1] * (256 - len(chrdata)))
+        chrdata = b''.join(chrdata)
     elif chrtype:
         print("%s: %s tile sheet type not yet implemented" % (progname, chrtype),
               file=sys.stderr)
         sys.exit(1)
     if chrdata:
-        assert len(chrdata) >= 4096
         if remap:
+            assert len(chrdata) <= 4096
             sav = remap_sav_to_chr(sav, chrdata)
         else:
+            assert len(chrdata) >= 4096
             sav = chrdata[:4096] + sav[4096:]
         changed = True
 
@@ -935,7 +940,7 @@ def main(argv=None):
               file=sys.stderr)
         sys.exit(1)
     if show:
-        im.show()
+        im.convert("RGB").show()
     if printpalette:
         print(''.join('%02x' % b for b in sav[0x1F00:0x1F10]))
 
