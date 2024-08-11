@@ -466,9 +466,10 @@ def load_bitmap(filename, max_tiles=None):
 
 # Rendering .sav file to bitmap #####################################
 
-# Palette generated with Bisqwit's NTSC NES palette generator
+# Palette generated in 2014 with Bisqwit's NTSC NES palette generator
 # <https://bisqwit.iki.fi/utils/nespalette.php>
-# using settings close to gamma 2, sat 1.2
+# The settings have since been lost but were close to
+#     hue 0, sat 1.2, contrast 1.0, brightness 1.0, gamma 2.2
 # it was later clarified that sat 2 is closer to standard
 bisqpal = bytes.fromhex(
     '656565002d69131f7f3c137c600b62730a37710f075a1a00'
@@ -734,6 +735,31 @@ def load_bitmap_with_palette(filename, palette, max_tiles=None):
 
 # Saving the NES palette that this converter uses ###################
 
+hexfont = [
+    0x6999960, 0x2622220, 0x69168f0, 0x6161960,
+    0x359f110, 0x78e1960, 0x68e9960, 0xf122440,
+    0x6969960, 0x6997160, 0x0617970, 0x8e999e0,
+    0x0698960, 0x1799970, 0x069f870, 0x34e4440,
+]
+HEXFONT_HT = 8
+HEXFONT_ADVANCE = 5
+
+def write_hex_digits(im, xy, value, length, fill):
+    left, top = xy
+    width, height = im.size
+    px = im.load()
+    for placevalue in reversed(range(length)):
+        glyph = hexfont[(value >> (placevalue * 4)) & 0x0F]
+        for y in range(HEXFONT_HT):
+            sliver_y = top + y
+            glyphrow = (glyph >> ((HEXFONT_HT - y - 1) * 4)) & 0x0F
+            if glyphrow == 0 or not 0 <= sliver_y < height: continue
+            for x in range(left, min(width, left + 4)):
+                if glyphrow & 0x08 and 0 <= x:
+                    px[x, sliver_y] = fill
+                glyphrow <<= 1
+        left += HEXFONT_ADVANCE
+
 def colorname(colorid):
     colorid &= 0x3F
     if colorid == 0x0F: return "Black"
@@ -815,15 +841,23 @@ Columns: 16
             colornumber = row * 16 + col
             dc.rectangle((x, y, x + cellw, y + cellh), fill=colornumber)
 
+            if colornumber == 0x0D:
+                # Draw no-no color marker
+                dc.ellipse((x, y, x + cellw - 1, y + cellh - 1),
+                           width=4, outline=0x16)
+                dc.line((x + cellw // 6, y + cellh // 6,
+                         x + 5 * cellw // 6, y + 5 * cellh // 6),
+                        width=3, fill=0x16)
+
             # draw caption
             graylevel = (row + 1 if col < 1
                          else row if col < 13
                          else row - 1 if col < 14
                          else 0)
             captioncolor = 0x20 if graylevel < 2 else 0x0F
-            captiontxt = '%02x' % colornumber
-            captionpos = (x + cellw - 1, y + cellh)
-            dc.text(captionpos, captiontxt, font=fnt, fill=captioncolor, anchor="rd")
+            captionpos = (x + cellw - 2 * HEXFONT_ADVANCE,
+                          y + cellh - HEXFONT_HT)
+            write_hex_digits(im, captionpos, colornumber, 2, captioncolor)
     if filename and filename != '--show':
         im.save(filename)
     else:
