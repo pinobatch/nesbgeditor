@@ -8,8 +8,7 @@ by Damian Yerrick
 See versionText for version and copyright information.
 
 """
-from __future__ import with_statement, division, print_function, unicode_literals
-import sys, os, re
+import sys, os, re, argparse
 try:
     from PIL import Image, ImageChops
 except ImportError:
@@ -17,6 +16,7 @@ except ImportError:
           file=sys.stderr)
     Image = None
 
+assert str is not bytes  # Python 2 is buried
 default_palette = b'\x0F\x00\x10\x30\x0F\x06\x16\x26\x0F\x1A\x2A\x3A\x0F\x02\x12\x22'
 
 # Command line parsing and help #####################################
@@ -25,9 +25,9 @@ default_palette = b'\x0F\x00\x10\x30\x0F\x06\x16\x26\x0F\x1A\x2A\x3A\x0F\x02\x12
 # program self-documenting and resilient to bad input.
 
 usageText = "usage: %prog [options] [-i] INFILE [-o] OUTFILE"
-versionText = """%prog 0.06wip
+versionText = """savtool 0.07wip
 
-Copyright 2012, 2018 Damian Yerrick
+Copyright 2012, 2024 Damian Yerrick
 Copying and distribution of this file, with or without
 modification, are permitted in any medium without royalty provided
 the copyright notice and this notice are preserved in all source
@@ -85,6 +85,7 @@ The --write-swatches option writes out this file
 .pal: Write 192-byte palette for use with NES emulators
 .gpl: Write palette in GIMP/Inkscape format
 .txt: Write 64 lines
+--show: Display using image viewer
 
 Glossary
 Attribute: The color set chosen for each color area
@@ -129,78 +130,77 @@ infile_exts = {
     'ppu': 'ppu', 'chr': 'chr', 'nam': 'nam'
 }
 
-def mkparser():
-    from optparse import OptionParser
-
-    parser = OptionParser(usage=usageText, version=versionText,
-                          description=descriptionText)
-    parser.add_option("--more-help", dest="morehelp",
-                      default=False, action="store_true",
-                      help="show more detailed help and exit",)
-    parser.add_option("-i", dest="infilename",
-                      help="read from INFILE (.bmp, .chr, .nam, .png, .ppu, .sav)",
-                      metavar="INFILE")
-    parser.add_option("-o", dest="outfilename",
-                      help="write output to OUTFILE (.bmp, .chr, .nam, .png, .sav); "
-                           "optional if INFILE is a .sav",
-                      metavar="OUTFILE")
-    parser.add_option("--chr", dest="chrfilename", metavar="SHEET-OR-ADDR",
-                      help="set the hex starting address to ADDR ($0000 or $1000) "
-                           "if INFILE is a PPU dump, or use SHEET as a tile sheet")
-    parser.add_option("--remap", dest="remap",
-                      default=False, action="store_true",
-                      help="instead of replacing a picture's tile sheet with SHEET, remap it to use tiles already in SHEET")
-    parser.add_option("--max-tiles", type=int,
-                      help="reduce unique tiles to this many (e.g. 256)")
-    parser.add_option("-x", "--scroll-x", dest="xscroll",
-                      help="trim 16*DISTANCE pixels from left side of .ppu (0-31, default 0)",
-                      metavar="DISTANCE", type="int", default=0)
-    parser.add_option("-y", "--scroll-y", dest="yscroll",
-                      help="trim 16*DISTANCE pixels from top of .ppu (0-29, default 0)",
-                      metavar="DISTANCE", type="int", default=0)
-    parser.add_option("--palette", dest="palette",
-                      help="use a 32-character hex palette or the palette from SAVFILE",
-                      metavar="SAVFILE-OR-HEX")
-    parser.add_option("--print-palette", dest="printpalette",
-                      default=False, action="store_true",
-                      help="write image's 32-character hex palette to standard output",)
-    parser.add_option("--show", dest="show",
-                      default=False, action="store_true",
-                      help="display picture")
-    parser.add_option("-P", "--write-chr", metavar="COLORSET", dest="writechr",
-                      help="write tile sheet instead of screen, with colorset COLORSET (0-3)",
-                      default=None, type="int")
-    parser.add_option("--write-swatches", metavar="OUTFILE", dest="swatchfilename",
-                      help="write the entire NES palette to OUTFILE "
-                      "(.bmp, .png, .pal, .txt, .gpl); "
-                      "useful for determining hex values",
-                      default=None)
-    return parser
-
-parser = None
 def parse_argv(argv):
-    global parser
-    parser = parser or mkparser()
+    parser = argparse.ArgumentParser(
+##        usage=usageText,
+        description=descriptionText,
+        fromfile_prefix_chars='@'
+    )
+    parser.add_argument("--more-help", action="store_true",
+                        help="show more detailed help and exit")
+    parser.add_argument("--version", action="store_true",
+                        help="show version and license and exit")
+    parser.add_argument("-i", "--input",
+                        help="read from INFILE (.bmp, .chr, .nam, .png, .ppu, .sav)",
+                        metavar="INFILE")
+    parser.add_argument("-o", "--output",
+                        help="write output to OUTFILE (.bmp, .chr, .nam, .png, .sav); "
+                             "optional if INFILE is a .sav",
+                        metavar="OUTFILE")
+    parser.add_argument("--chr", metavar="SHEET-OR-ADDR",
+                        help="set the hex starting address to ADDR ($0000 or $1000) "
+                             "if INFILE is a PPU dump, or use SHEET as a tile sheet")
+    parser.add_argument("--remap", dest="remap", action="store_true",
+                        help="instead of replacing a picture's tile sheet with SHEET, remap it to use tiles already in SHEET")
+    parser.add_argument("--max-tiles", type=int,
+                        help="reduce unique tiles to this many (e.g. 256)")
+    parser.add_argument("-x", "--scroll-x", 
+                        help="trim 16*DISTANCE pixels from left side of .ppu (0-31, default 0)",
+                        metavar="DISTANCE", type=int, default=0)
+    parser.add_argument("-y", "--scroll-y", 
+                        help="trim 16*DISTANCE pixels from top of .ppu (0-29, default 0)",
+                        metavar="DISTANCE", type=int, default=0)
+    parser.add_argument("--palette", dest="palette",
+                        help="use a 32-character hex palette or the palette from SAVFILE",
+                        metavar="SAVFILE-OR-HEX")
+    parser.add_argument("--print-palette",
+                        default=False, action="store_true",
+                        help="write image's 32-character hex palette to standard output",)
+    parser.add_argument("--show", dest="show",
+                        default=False, action="store_true",
+                        help="display picture")
+    parser.add_argument("-P", "--write-chr", metavar="COLORSET",
+                        help="write tile sheet instead of screen, with colorset COLORSET (0-3)",
+                        default=None, type=int)
+    parser.add_argument("--write-swatches", metavar="OUTFILE",
+                        help="write the entire NES palette to OUTFILE "
+                        "(.bmp, .png, .pal, .txt, .gpl, or --show); "
+                        "useful for determining hex values",
+                        default=None)
+    parser.add_argument("files", metavar="FILE", nargs='*',
+                        help="specify INFILE and OUTFILE in that order")
 
-    (options, pos) = parser.parse_args(argv[1:])
-
-    if options.morehelp:
+    args = parser.parse_intermixed_args(argv[1:])
+    if args.more_help:
         print(moreDetailsText)
         sys.exit()
+    if args.version:  # bypass "helpful" help formatter
+        print(versionText)
+        sys.exit()
 
-    if options.writechr not in (0, 1, 2, 3, None):
+    if args.write_chr not in (0, 1, 2, 3, None):
         parser.error("color set for tile sheet must be 0 to 3")
-    if options.xscroll < 0 or options.xscroll > 31:
+    if args.scroll_x < 0 or args.scroll_x > 31:
         parser.error("X scroll must be 0 to 31")
-    if options.yscroll < 0 or options.yscroll > 29:
+    if args.scroll_y < 0 or args.scroll_y > 29:
         parser.error("Y scroll must be 0 to 29")
 
     # Fill unfilled roles with positional arguments
-    pos = iter(pos)
+    pos = iter(args.files)
     try:
-        infilename = options.infilename or next(pos)
+        infilename = args.input or next(pos)
     except StopIteration:
-        if options.swatchfilename:
+        if args.write_swatches:
             infilename = None
         else:
             parser.error("no input file; try %s --help"
@@ -216,14 +216,14 @@ def parse_argv(argv):
         intype = None
 
     try:
-        outfilename = options.outfilename or next(pos)
+        outfilename = args.output or next(pos)
     except StopIteration:
-        if options.show:
+        if args.show:
             outtype = 'bmp'
             outfilename = None
         elif infilename and infilename[-4:].lower() in ('.sav', '.srm'):
             outfilename = infilename  # overwrite same file
-        elif options.swatchfilename and not infilename:
+        elif args.write_swatches and not infilename:
             outfilename = None
         else:
             parser.error("no output file")
@@ -243,12 +243,12 @@ def parse_argv(argv):
         parser.error("too many filenames")
 
     # look for mutually conflicting options
-    if options.chrfilename:
-        chrext = os.path.splitext(options.chrfilename)[1].lstrip('.').lower()
+    if args.chr:
+        chrext = os.path.splitext(args.chr)[1].lstrip('.').lower()
         try:
             chrtype = infile_exts[chrext]
         except KeyError:
-            if intype == 'ppu' and xdigitRE.match(options.chrfilename):
+            if intype == 'ppu' and xdigitRE.match(args.chr):
                 chrtype = 'literal'
             else:
                 parser.error("unrecognized extension '%s' for tile sheet" % chrext)
@@ -259,12 +259,12 @@ def parse_argv(argv):
     else:
         chrtype = None
 
-    if options.palette:
-        palext = os.path.splitext(options.palette)[1].lstrip('.').lower()
+    if args.palette:
+        palext = os.path.splitext(args.palette)[1].lstrip('.').lower()
         try:
             paltype = infile_exts[palext]
         except KeyError:
-            if xdigitRE.match(options.palette):
+            if xdigitRE.match(args.palette):
                 paltype = 'literal'
             else:
                 parser.error("unrecognized extension '%s' for palette" % chrext)
@@ -275,24 +275,24 @@ def parse_argv(argv):
     else:
         paltype = None
 
-    if chrtype == 'nam' and not options.chrfilename:
+    if chrtype == 'nam' and not args.chr:
         parser.error("converting a nametable requires a tile sheet (--chr)")
-    remap = (intype == 'bmp' and options.chrfilename) or options.remap
-    if remap and (not options.chrfilename or chrtype == 'literal'):
+    remap = (intype == 'bmp' and args.chr) or args.remap
+    if remap and (not args.chr or chrtype == 'literal'):
         parser.error("remapping CHR requires a tile sheet (--chr)")
-    if chrtype == 'nam' and (options.writechr or options.remap):
+    if chrtype == 'nam' and (args.write_chr or args.remap):
         parser.error("nametable has no tile sheet")
-    if intype != 'ppu' and (options.xscroll or options.yscroll):
+    if intype != 'ppu' and (args.scroll_x or args.scroll_y):
         parser.error("only PPU dumps can be scrolled")
-    if options.printpalette and paltype not in ('ppu', 'sav'):
+    if args.print_palette and paltype not in ('ppu', 'sav'):
         parser.error("only PPU dumps and save files have an NES palette")
-    if options.max_tiles is not None and not 2 <= options.max_tiles <= 256:
+    if args.max_tiles is not None and not 2 <= args.max_tiles <= 256:
         parser.error("max-tiles not in 2 to 256")
 
-    return (infilename, outfilename, options.chrfilename,
-            options.xscroll, options.yscroll,
-            options.palette, options.printpalette, options.writechr,
-            options.show, remap, options.swatchfilename, options.max_tiles)
+    return (infilename, outfilename, args.chr,
+            args.scroll_x, args.scroll_y,
+            args.palette, args.print_palette, args.write_chr,
+            args.show, remap, args.write_swatches, args.max_tiles)
 
 def test_argv():
     from shlex import split as strtoargs
@@ -466,7 +466,7 @@ def load_bitmap(filename, max_tiles=None):
 
 # Rendering .sav file to bitmap #####################################
 
-# Palette generated in 2014 with Bisqwit's NTSC NES palette generator
+# Palette generated in 2012 with Bisqwit's NTSC NES palette generator
 # <https://bisqwit.iki.fi/utils/nespalette.php>
 # The settings have since been lost but were close to
 #     hue 0, sat 1.2, contrast 1.0, brightness 1.0, gamma 2.2
@@ -1019,5 +1019,7 @@ def test_suite():
 look correct.""")
 
 if __name__=='__main__':
-##    test_suite()
-    main()
+    if 'idlelib' in sys.modules:
+        test_suite()
+    else:
+        main()
