@@ -122,7 +122,7 @@ testpatterns = [
     "savtool.py x.nam --chr x.chr --palette 0F0010300F0616260F1A2A3A0F021222 -o x.sav",
 ]
 
-xdigitRE = re.compile('^\$?([0-9a-fA-F]+)$')
+xdigitRE = re.compile(r'^\$?([0-9a-fA-F]+)$')
 infile_exts = {
     'bmp': 'bmp', 'png': 'bmp', 'gif': 'bmp', 'jpg': 'bmp', 'jpeg': 'bmp',
     'sav': 'sav', 'srm': 'sav',
@@ -466,8 +466,10 @@ def load_bitmap(filename, max_tiles=None):
 
 # Rendering .sav file to bitmap #####################################
 
-# Palette generated with Bisqwit's tool
+# Palette generated with Bisqwit's NTSC NES palette generator
+# <https://bisqwit.iki.fi/utils/nespalette.php>
 # using settings close to gamma 2, sat 1.2
+# it was later clarified that sat 2 is closer to standard
 bisqpal = bytes.fromhex(
     '656565002d69131f7f3c137c600b62730a37710f075a1a00'
     '3428000b3400003c00003d10003840000000000000000000'
@@ -803,11 +805,11 @@ Columns: 16
     fnt = ImageFont.load_default()
     dc = ImageDraw.Draw(im)
     captiontxt = "savtool's NES palette"
-    tw, th = dc.textsize(captiontxt, font=fnt)
-    captionpos = ((cellw * 16 - tw) // 2, (cellh - th) // 2)
-    dc.text(captionpos, captiontxt, font=fnt, fill=0x20)
+    headerh = cellh
+    captionpos = (cellw * 16 // 2, headerh // 2)
+    dc.text(captionpos, captiontxt, font=fnt, fill=0x20, anchor="mm")
     for row in range(4):
-        y = (row + 1) * cellh
+        y = row * cellh + headerh
         for col in range(16):
             x = col * cellw
             colornumber = row * 16 + col
@@ -820,10 +822,9 @@ Columns: 16
                          else 0)
             captioncolor = 0x20 if graylevel < 2 else 0x0F
             captiontxt = '%02x' % colornumber
-            tw, th = dc.textsize(captiontxt, font=fnt)
-            captionpos = (x + cellw - tw, y + cellh - th)
-            dc.text(captionpos, captiontxt, font=fnt, fill=captioncolor)
-    if filename:
+            captionpos = (x + cellw - 1, y + cellh)
+            dc.text(captionpos, captiontxt, font=fnt, fill=captioncolor, anchor="rd")
+    if filename and filename != '--show':
         im.save(filename)
     else:
         im.convert("RGB").show()
